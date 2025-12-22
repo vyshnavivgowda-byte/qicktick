@@ -1,252 +1,328 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Plus, Trash2, Upload, Loader2 } from "lucide-react";
+import {
+  Package,
+  PlusCircle,
+  Edit3,
+  Trash2,
+  X,
+  Save,
+  Image as ImageIcon,
+  Tag,
+  IndianRupee,
+  FileText,
+  AlertCircle,
+  Youtube
+} from "lucide-react";
 
-type Product = {
-    id: string;
-    vendor_id: string;
-    product_name: string;
-    price: number;
-    description: string | null;
-    product_image: string | null;
-    is_active: boolean;
-    created_at: string;
+type MediaItem = {
+  url: string;
+  type: "image" | "youtube";
 };
 
 export default function VendorProductsPage() {
-    const [products, setProducts] = useState<Product[]>([]);
-    const [vendorId, setVendorId] = useState<string | null>(null);
-    const [file, setFile] = useState<File | null>(null);
-    const [form, setForm] = useState({
-        product_name: "",
-        price: "",
-        description: "",
+  const router = useRouter();
+
+  const [vendor, setVendor] = useState<any>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [productForm, setProductForm] = useState({
+    product_name: "",
+    price: "",
+    description: "",
+  });
+
+  const [mediaList, setMediaList] = useState<MediaItem[]>([]);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+
+  /* ---------------- LOAD DATA ---------------- */
+  useEffect(() => {
+    const loadData = async () => {
+      const stored = localStorage.getItem("vendorData");
+      if (!stored) return router.push("/");
+
+      const localVendor = JSON.parse(stored);
+
+      const { data: vendorData } = await supabase
+        .from("vendor_register")
+        .select("*")
+        .eq("email", localVendor.email)
+        .maybeSingle();
+
+      if (!vendorData) return;
+      setVendor(vendorData);
+
+      const { data } = await supabase
+        .from("vendor_products")
+        .select("*")
+        .eq("vendor_id", vendorData.id)
+        .order("created_at", { ascending: false });
+
+      setProducts(data || []);
+      setLoading(false);
+    };
+
+    loadData();
+  }, [router]);
+
+  /* ---------------- IMAGE UPLOAD ---------------- */
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMediaList([{ url: reader.result as string, type: "image" }]);
+      setYoutubeUrl("");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  /* ---------------- YOUTUBE URL ---------------- */
+  const addYoutubeUrl = () => {
+    if (!youtubeUrl.trim()) return;
+
+    setMediaList([{ url: youtubeUrl.trim(), type: "youtube" }]);
+  };
+
+  const getYoutubeEmbed = (url: string) => {
+    const id =
+      url.split("v=")[1]?.split("&")[0] ||
+      url.split("youtu.be/")[1];
+    return `https://www.youtube.com/embed/${id}`;
+  };
+
+  /* ---------------- SAVE ---------------- */
+  const handleSave = async () => {
+    if (!productForm.product_name || !productForm.price) {
+      alert("Please fill mandatory fields");
+      return;
+    }
+
+    const payload = {
+      vendor_id: vendor.id,
+      product_name: productForm.product_name,
+      price: Number(productForm.price),
+      description: productForm.description,
+      product_image: JSON.stringify(mediaList),
+    };
+
+    if (editingProduct.id === "new") {
+      await supabase.from("vendor_products").insert(payload);
+    } else {
+      await supabase
+        .from("vendor_products")
+        .update(payload)
+        .eq("id", editingProduct.id);
+    }
+
+    resetForm();
+    refreshProducts();
+  };
+
+  const refreshProducts = async () => {
+    const { data } = await supabase
+      .from("vendor_products")
+      .select("*")
+      .eq("vendor_id", vendor.id)
+      .order("created_at", { ascending: false });
+    setProducts(data || []);
+  };
+
+  const resetForm = () => {
+    setEditingProduct(null);
+    setProductForm({ product_name: "", price: "", description: "" });
+    setMediaList([]);
+    setYoutubeUrl("");
+  };
+
+  const startEdit = (p: any) => {
+    setEditingProduct(p);
+    setProductForm({
+      product_name: p.product_name,
+      price: p.price.toString(),
+      description: p.description,
     });
-    const [loading, setLoading] = useState(false);
+    const media = JSON.parse(p.product_image || "[]");
+    setMediaList(media);
+    if (media[0]?.type === "youtube") setYoutubeUrl(media[0].url);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
-    /* GET VENDOR ID */
-    useEffect(() => {
-        const stored = localStorage.getItem("vendorData");
-        if (!stored) return;
-
-        const vendor = JSON.parse(stored);
-
-        supabase
-            .from("vendor_register")
-            .select("id")
-            .eq("email", vendor.email)
-            .single()
-            .then(({ data, error }) => {
-                if (error) {
-                    console.error("Vendor fetch error:", error);
-                }
-                if (data) {
-                    setVendorId(data.id);
-                    fetchProducts(data.id);
-                }
-            });
-    }, []);
-
-    /* FETCH PRODUCTS */
-    const fetchProducts = async (vendorId: string) => {
-        const { data, error } = await supabase
-            .from("vendor_products")
-            .select("*")
-            .eq("vendor_id", vendorId)
-            .order("created_at", { ascending: false });
-
-        if (error) {
-            console.error("Fetch products error:", error);
-            return;
-        }
-
-        if (data) setProducts(data);
-    };
-
-    /* IMAGE UPLOAD */
-    const uploadImage = async (): Promise<string | null> => {
-        if (!file || !vendorId) return null;
-
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${vendorId}-${Date.now()}.${fileExt}`;
-        const filePath = `products/${fileName}`;
-
-        const { error } = await supabase.storage
-            .from("product-images")
-            .upload(filePath, file, {
-                cacheControl: "3600",
-                upsert: true,
-                contentType: file.type,
-            });
-
-        if (error) {
-            console.error("Image upload error:", error);
-            alert(error.message);
-            return null;
-        }
-
-        const { data } = supabase.storage
-            .from("product-images")
-            .getPublicUrl(filePath);
-
-        return data.publicUrl;
-    };
-
-
-    /* VALIDATION */
-    const validateForm = () => {
-        if (!form.product_name.trim()) {
-            alert("Product name is required");
-            return false;
-        }
-        if (!form.price || isNaN(Number(form.price)) || Number(form.price) <= 0) {
-            alert("Enter a valid price");
-            return false;
-        }
-        if (!form.description.trim()) {
-            alert("Description is required");
-            return false;
-        }
-        return true;
-    };
-
-    /* ADD PRODUCT */
-    const addProduct = async () => {
-        if (!vendorId) return;
-        if (!validateForm()) return;
-
-        setLoading(true);
-
-        const imageUrl = await uploadImage();
-        console.log("IMAGE URL:", imageUrl);
-
-        if (!imageUrl) {
-            setLoading(false);
-            alert("Image upload failed. Product not saved.");
-            return;
-        }
-
-        const { data, error } = await supabase
-            .from("vendor_products")
-            .insert({
-                vendor_id: vendorId,
-                product_name: form.product_name,
-                price: Number(form.price),
-                description: form.description,
-                product_image: imageUrl,
-            })
-            .select();
-
-        console.log("INSERT RESULT:", data, error);
-
-        setLoading(false);
-
-        if (error) {
-            console.error("Insert product error:", error);
-            alert(error.message);
-        } else {
-            setForm({ product_name: "", price: "", description: "" });
-            setFile(null);
-            fetchProducts(vendorId);
-        }
-    };
-
-
-    /* DELETE PRODUCT */
-    const deleteProduct = async (id: string) => {
-        const confirm = window.confirm("Are you sure you want to delete this product?");
-        if (!confirm) return;
-
-        const { error } = await supabase.from("vendor_products").delete().eq("id", id);
-        if (error) {
-            console.error("Delete product error:", error);
-            alert("Failed to delete product");
-            return;
-        }
-
-        setProducts(products.filter((p) => p.id !== id));
-    };
-
+  if (loading)
     return (
-        <div className="p-8 bg-gray-50 min-h-screen">
-            <div className="max-w-6xl mx-auto">
-                <h1 className="text-3xl font-bold mb-6">Products</h1>
-
-                {/* ADD PRODUCT */}
-                <div className="bg-white p-6 rounded-xl shadow mb-10">
-                    <h2 className="font-semibold mb-4">Add Product</h2>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <input
-                            placeholder="Product name"
-                            className="border p-3 rounded-lg"
-                            value={form.product_name}
-                            onChange={(e) => setForm({ ...form, product_name: e.target.value })}
-                        />
-
-                        <input
-                            placeholder="Price"
-                            className="border p-3 rounded-lg"
-                            value={form.price}
-                            onChange={(e) => setForm({ ...form, price: e.target.value })}
-                        />
-
-                        <textarea
-                            placeholder="Description"
-                            className="border p-3 rounded-lg md:col-span-2"
-                            rows={3}
-                            value={form.description}
-                            onChange={(e) => setForm({ ...form, description: e.target.value })}
-                        />
-
-                        <label className="flex items-center gap-3 border p-3 rounded-lg cursor-pointer">
-                            <Upload />
-                            <span>{file ? file.name : "Upload image"}</span>
-                            <input
-                                type="file"
-                                hidden
-                                accept="image/png,image/jpeg,image/webp"
-                                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                            />
-
-                        </label>
-                    </div>
-
-                    <button
-                        onClick={addProduct}
-                        disabled={loading}
-                        className="mt-4 px-6 py-3 bg-yellow-500 text-white rounded-lg font-bold"
-                    >
-                        {loading ? <Loader2 className="animate-spin" /> : "Add Product"}
-                    </button>
-                </div>
-
-                {/* PRODUCT LIST */}
-                <div className="grid md:grid-cols-3 gap-6">
-                    {products.map((p) => (
-                        <div key={p.id} className="bg-white rounded-xl shadow overflow-hidden">
-                            <img
-                                src={p.product_image || "/placeholder.png"}
-                                className="h-48 w-full object-cover"
-                            />
-                            <div className="p-4">
-                                <h3 className="font-bold">{p.product_name}</h3>
-                                <p className="text-gray-600">₹{p.price.toFixed(2)}</p>
-                                <p className="text-sm text-gray-500 mt-1">{p.description}</p>
-
-                                <button
-                                    onClick={() => deleteProduct(p.id)}
-                                    className="mt-3 flex items-center gap-2 text-red-600"
-                                >
-                                    <Trash2 size={16} /> Delete
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
+      <div className="h-96 flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-b-2 border-red-600 rounded-full" />
+      </div>
     );
+
+  return (
+    <div className="min-h-screen bg-yellow-50 px-6 xl:px-20 py-12 space-y-12">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-4xl font-black text-red-700">
+            Inventory <span className="text-yellow-500">Lab</span>
+          </h2>
+          <p className="text-red-700/60 mt-2 font-medium">
+            Manage products with image or video previews
+          </p>
+        </div>
+
+        {!editingProduct && (
+          <button
+            onClick={() => setEditingProduct({ id: "new" })}
+            className="flex items-center gap-2 bg-red-600 hover:bg-yellow-400
+                       text-white hover:text-red-800 px-8 py-4 rounded-2xl
+                       font-black text-xs uppercase tracking-widest transition"
+          >
+            <PlusCircle size={18} /> New Product
+          </button>
+        )}
+      </div>
+
+      {/* EDITOR */}
+      {editingProduct && (
+        <div className="bg-white border-4 border-red-600 rounded-[2.5rem]
+                        shadow-[20px_20px_0px_rgba(234,179,8,0.3)]">
+
+          <div className="bg-red-600 p-6 flex justify-between text-white">
+            <span className="font-black uppercase tracking-widest text-xs">
+              {editingProduct.id === "new" ? "New Product" : "Edit Product"}
+            </span>
+            <button onClick={resetForm}><X /></button>
+          </div>
+
+          <div className="p-10 grid lg:grid-cols-3 gap-10">
+
+            {/* MEDIA */}
+            <div className="space-y-6">
+              <label className="text-xs font-black text-red-600 uppercase">
+                Product Media
+              </label>
+
+              <div className="aspect-square bg-yellow-50 border-2 border-dashed
+                              border-yellow-300 rounded-3xl flex items-center justify-center overflow-hidden">
+                {mediaList[0]?.type === "image" && (
+                  <img src={mediaList[0].url} className="w-full h-full object-cover" />
+                )}
+                {mediaList[0]?.type === "youtube" && (
+                  <iframe
+                    src={getYoutubeEmbed(mediaList[0].url)}
+                    className="w-full h-full"
+                    allowFullScreen
+                  />
+                )}
+                {!mediaList.length && (
+                  <ImageIcon size={40} className="text-yellow-400" />
+                )}
+                <input
+                  type="file"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={handleImageUpload}
+                />
+              </div>
+
+              {/* YOUTUBE INPUT */}
+              <div className="flex gap-2">
+                <input
+                  placeholder="YouTube URL"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  className="flex-1 p-3 rounded-xl border border-yellow-300"
+                />
+                <button
+                  onClick={addYoutubeUrl}
+                  className="bg-red-600 text-white px-4 rounded-xl"
+                >
+                  <Youtube size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* FORM */}
+            <div className="lg:col-span-2 space-y-6">
+              <input
+                placeholder="Product Name"
+                value={productForm.product_name}
+                onChange={(e) =>
+                  setProductForm({ ...productForm, product_name: e.target.value })
+                }
+                className="w-full p-4 rounded-2xl border border-yellow-300"
+              />
+
+              <input
+                type="number"
+                placeholder="Price (INR)"
+                value={productForm.price}
+                onChange={(e) =>
+                  setProductForm({ ...productForm, price: e.target.value })
+                }
+                className="w-full p-4 rounded-2xl border border-yellow-300"
+              />
+
+              <textarea
+                rows={4}
+                placeholder="Description"
+                value={productForm.description}
+                onChange={(e) =>
+                  setProductForm({ ...productForm, description: e.target.value })
+                }
+                className="w-full p-4 rounded-2xl border border-yellow-300 resize-none"
+              />
+
+              <button
+                onClick={handleSave}
+                className="px-10 py-5 bg-red-600 hover:bg-yellow-400
+                           text-white hover:text-red-800 rounded-2xl
+                           font-black uppercase tracking-widest"
+              >
+                <Save size={16} /> Save Product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GRID */}
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
+        {products.map((p) => {
+          const media = JSON.parse(p.product_image || "[]")[0];
+          return (
+            <div key={p.id} className="bg-white rounded-3xl shadow-lg overflow-hidden">
+              <div className="h-60 bg-yellow-100">
+                {media?.type === "image" && (
+                  <img src={media.url} className="w-full h-full object-cover" />
+                )}
+                {media?.type === "youtube" && (
+                  <iframe
+                    src={getYoutubeEmbed(media.url)}
+                    className="w-full h-full"
+                    allowFullScreen
+                  />
+                )}
+              </div>
+              <div className="p-6">
+                <h3 className="font-black text-red-700">{p.product_name}</h3>
+                <p className="text-sm text-red-700/60">{p.description}</p>
+                <div className="mt-4 font-black text-yellow-600">₹{p.price}</div>
+                <button
+                  onClick={() => startEdit(p)}
+                  className="mt-4 text-sm font-bold text-red-600"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { User } from "@supabase/supabase-js";
 import { LogOut, UserCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+
 
 // Supabase
 const supabase = createClient(
@@ -16,6 +18,8 @@ const supabase = createClient(
 
 export default function UserFeed() {
   const pathname = usePathname();
+  const router = useRouter();
+
   const isActive = (route: string) =>
     pathname === route ? "text-yellow-600 font-bold" : "text-black";
 
@@ -37,43 +41,163 @@ export default function UserFeed() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerStep, setRegisterStep] = useState<"form" | "otp">("form");
+  const [otpExpiry, setOtpExpiry] = useState<number | null>(null); // timestamp when OTP expires
+  const [otpTimer, setOtpTimer] = useState<string | null>(null); // "mm:ss" display
+  const [userRole, setUserRole] = useState<"user" | "vendor" | null>(null);
+
 
   // Get current logged-in user on load
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const loadUserAndRole = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      setUser(user);
+
+      if (!user?.email) {
+        setUserRole(null);
+        return;
+      }
+
+      // Check if logged-in user is a vendor
+      const { data: vendor } = await supabase
+        .from("vendor_register")
+        .select("id")
+        .eq("email", user.email)
+        .single();
+
+      if (vendor) {
+        setUserRole("vendor");
+      } else {
+        setUserRole("user");
+      }
+    };
+
+    loadUserAndRole();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      loadUserAndRole();
     });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { name, value } = e.target;
+
+  setLoginData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+};
+
 
   // Login handler
-  const handleLoginChange = (e: any) => setLoginData({ ...loginData, [e.target.name]: e.target.value });
   const sendLoginOtp = async () => {
     setLoginLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({ email: loginData.email });
-    if (error) setLoginError(error.message);
-    else setLoginSuccess("OTP sent!");
-    setLoginLoading(false);
+    setLoginError(null);
+    setLoginSuccess(null);
+
+    try {
+      if (!loginData.email) {
+        setLoginError("Email is required");
+        return;
+      }
+
+      // Optional: allow only registered vendors/users
+      const { data: vendor } = await supabase
+        .from("vendor_register")
+        .select("id")
+        .eq("email", loginData.email)
+        .single();
+
+      // If you want to restrict login ONLY to vendors + existing users
+      // then keep this check. Otherwise REMOVE it.
+      if (!vendor) {
+        setLoginError("Email not registered.");
+        return;
+      }
+
+      // ✅ Send OTP via Supabase Auth
+      const { error } = await supabase.auth.signInWithOtp({
+        email: loginData.email,
+      });
+
+      if (error) throw error;
+
+      setLoginSuccess("OTP sent! It is valid for 5 minutes.");
+
+      const expiryTime = Date.now() + 5 * 60 * 1000;
+      setOtpExpiry(expiryTime);
+
+      const timer = setInterval(() => {
+        const remaining = expiryTime - Date.now();
+        if (remaining <= 0) {
+          setOtpTimer("00:00");
+          clearInterval(timer);
+        } else {
+          const m = Math.floor(remaining / 60000);
+          const s = Math.floor((remaining % 60000) / 1000);
+          setOtpTimer(`${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
+        }
+      }, 1000);
+    } catch (err: any) {
+      setLoginError(err.message);
+    } finally {
+      setLoginLoading(false);
+    }
   };
+
+
+
   const verifyLoginOtp = async () => {
     setLoginLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email: loginData.email,
-      token: loginData.otp,
-      type: "email",
-    });
-    if (error) setLoginError(error.message);
-    else {
-      setLoginSuccess("Login successful!");
-      setTimeout(() => setShowLoginPopup(false), 1500);
+    setLoginError(null);
+
+    try {
+      if (otpExpiry && Date.now() > otpExpiry) {
+        setLoginError("OTP expired.");
+        return;
+      }
+
+      const { error } = await supabase.auth.verifyOtp({
+        email: loginData.email,
+        token: loginData.otp,
+        type: "email",
+      });
+
+      if (error) throw error;
+
+      // 🔍 Determine role AFTER login
+      const { data: vendor } = await supabase
+        .from("vendor_register")
+        .select("id")
+        .eq("email", loginData.email)
+        .single();
+
+      setShowLoginPopup(false);
+
+      if (vendor) {
+        router.push("/user/feed");
+      } else {
+        router.push("/user/feed");
+      }
+    } catch (err: any) {
+      setLoginError(err.message);
+    } finally {
+      setLoginLoading(false);
     }
-    setLoginLoading(false);
   };
+
+
+
 
   // Register
   const handleRegisterChange = (e: any) => setRegisterData({ ...registerData, [e.target.name]: e.target.value });
@@ -122,7 +246,7 @@ export default function UserFeed() {
             <Link href="/user/feed" className={isActive("/user/feed")}>Home</Link>
             <Link href="/user/subscription-plans" className={isActive("/user/subscription-plans")}>Plans</Link>
             <Link href="/user/listing" className={isActive("/user/listing")}>Listing</Link>
-              <Link href="/user/video" className={isActive("/user/video")}>Video</Link>
+            <Link href="/user/video" className={isActive("/user/video")}>Video</Link>
             <Link href="/user/transport" className={isActive("/user/transport")}>Transport</Link>
             <Link href="/user/enquiry" className={isActive("/user/enquiry")}>Enquiry</Link>
             <Link href="/user/help" className={isActive("/user/help")}>Help And Earn</Link>
@@ -142,24 +266,58 @@ export default function UserFeed() {
             )}
 
             {/* ▼ AFTER login - show PROFILE ICON */}
-            {user && (
-              <div className="relative">
-                <button onClick={() => setOpenMenu(openMenu ? null : "profile")}>
-                  <UserCircle size={36} className="text-black" />
-                </button>
+          {user && (
+  <div className="relative">
+    <button onClick={() => setOpenMenu(openMenu ? null : "profile")}>
+      <UserCircle size={36} className="text-black" />
+    </button>
 
-                {openMenu === "profile" && (
-                  <div className="absolute right-0 bg-white shadow-xl rounded-md py-2 w-44 text-sm">
-                    <Link href="/user/profile" className="flex px-4 py-2 hover:bg-gray-100">
-                      My Profile
-                    </Link>
-                    <button onClick={logout} className="flex w-full px-4 py-2 hover:bg-gray-100 text-left">
-                      <LogOut size={16} className="mr-2" /> Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+    {openMenu === "profile" && (
+      <div className="absolute right-0 bg-white shadow-xl rounded-md py-2 w-52 text-sm z-50">
+        {/* My Profile link */}
+        <Link
+          href={userRole === "vendor" ? "/user/vendor-profile" : "/user/profile"}
+          className="flex px-4 py-2 hover:bg-gray-100"
+        >
+          My Profile
+        </Link>
+
+        {/* ▼ Vendor-specific links (only visible for vendors) */}
+        {userRole === "vendor" && (
+          <>
+            <Link
+              href="/vendor/products"
+              className="flex px-4 py-2 hover:bg-gray-100"
+            >
+              Products
+            </Link>
+            <Link
+              href="/vendor/enquiry"
+              className="flex px-4 py-2 hover:bg-gray-100"
+            >
+              Enquiries
+            </Link>
+            <Link
+              href="/vendor/subscription"
+              className="flex px-4 py-2 hover:bg-gray-100"
+            >
+              Subscription
+            </Link>
+          </>
+        )}
+
+        {/* Logout button */}
+        <button
+          onClick={logout}
+          className="flex w-full px-4 py-2 hover:bg-gray-100 text-left"
+        >
+          <LogOut size={16} className="mr-2" /> Logout
+        </button>
+      </div>
+    )}
+  </div>
+)}
+
           </nav>
         </div>
       </header>
@@ -203,11 +361,17 @@ export default function UserFeed() {
                 />
               </div>
               <div className="flex flex-col">
+                {otpTimer && (
+                  <p className="text-gray-600 text-sm text-center">
+                    OTP expires in: <span className="font-bold">{otpTimer}</span>
+                  </p>
+                )}
+
                 <label className="font-semibold text-black mb-1">OTP *</label>
                 <input
                   name="otp"
                   value={loginData.otp}
-                  placeholder="Enter 6-digit OTP"
+                  placeholder="Enter 8-digit OTP"
                   className="w-full p-3 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   onChange={handleLoginChange}
                 />
@@ -301,7 +465,7 @@ export default function UserFeed() {
                     <input
                       name="otp"
                       value={registerData.otp}
-                      placeholder="Enter 6-digit OTP"
+                      placeholder="Enter 8-digit OTP"
                       className="w-full p-3 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
                       onChange={handleRegisterChange}
                     />
