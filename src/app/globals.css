@@ -29,3 +29,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+@keyframes slide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); } /* slide half the container */
+}
+
+.animate-slide {
+  display: flex;
+  gap: 1.5rem;
+  animation: slide 20s linear infinite;
+}
+
