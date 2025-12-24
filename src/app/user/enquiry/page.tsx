@@ -1,17 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
-import { MessageSquare, User as UserIcon, Mail, Phone, Send, Loader } from "lucide-react";
-
-// Supabase
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-// Assuming enquiries table has: id, name, email, phone, message, created_at, etc.
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  MessageSquare, 
+  User as UserIcon, 
+  Mail, 
+  Phone, 
+  Send, 
+  Loader, 
+  Lock, 
+  ShieldAlert, 
+  History,
+  Calendar,
+  Sparkles
+} from "lucide-react";
 
 interface Enquiry {
   id: number;
@@ -20,6 +25,7 @@ interface Enquiry {
   phone: string;
   message: string;
   created_at: string;
+  is_subscribed: boolean;
 }
 
 export default function EnquiryPage() {
@@ -27,7 +33,6 @@ export default function EnquiryPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
 
-  // Form states
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -39,37 +44,31 @@ export default function EnquiryPage() {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get current user
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
     });
-
-    // Fetch enquiries
     fetchEnquiries();
   }, []);
 
   const fetchEnquiries = async () => {
     const { data, error } = await supabase
-      .from("enquiries") // Assuming table name
+      .from("enquiries")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching enquiries:", error);
-      setFormError("Failed to load enquiries. Please try again.");
-    } else {
-      setEnquiries(data || []);
-    }
+    if (!error) setEnquiries(data || []);
     setLoading(false);
   };
 
-  const handleFormChange = (e: any) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => 
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleFormSubmit = async () => {
     if (!formData.name || !formData.email || !formData.message) {
-      setFormError("Please fill in name, email, and message.");
+      setFormError("Please fill in required fields marked with *");
       return;
     }
+
     setFormLoading(true);
     setFormError(null);
     setFormSuccess(null);
@@ -80,169 +79,194 @@ export default function EnquiryPage() {
         email: formData.email,
         phone: formData.phone || null,
         message: formData.message,
+        user_id: user?.id ?? null,
+        is_subscribed: false,
       },
     ]);
 
     if (error) {
-      console.error("Error submitting enquiry:", error);
-      setFormError("Failed to submit enquiry. Please try again.");
+      setFormError("Failed to submit enquiry.");
     } else {
-      setFormSuccess("Enquiry submitted successfully!");
+      setFormSuccess("Your enquiry has been sent successfully!");
       setFormData({ name: "", email: "", phone: "", message: "" });
-      fetchEnquiries(); // Refresh the list
+      fetchEnquiries();
     }
     setFormLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-6 md:px-12">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">Customer Enquiries</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Have questions or need assistance? Submit your enquiry below or browse existing ones.
+    <div className="min-h-screen bg-[#FAFAFA] text-slate-900 pb-20">
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #eab308; border-radius: 10px; }
+      `}</style>
+
+      {/* --- YELLOW HERO SECTION --- */}
+      <div className="bg-[#FFD700] pt-20 pb-32 px-6">
+        <div className="max-w-6xl mx-auto text-center">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex justify-center mb-6">
+            <div className="bg-white/40 p-4 rounded-3xl backdrop-blur-md border border-white/50 shadow-sm">
+              <MessageSquare size={40} className="text-slate-900" />
+            </div>
+          </motion.div>
+          <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-4xl md:text-6xl font-black mb-4 tracking-tight text-slate-900">
+            Need Some Help?
+          </motion.h1>
+          <p className="text-slate-800 text-lg max-w-2xl mx-auto opacity-90 font-semibold flex items-center justify-center gap-2">
+            <Sparkles size={18} className="text-amber-600" />
+            Drop us an enquiry and we'll get back to you shortly.
           </p>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Enquiry Form */}
-          <div className="bg-white shadow-xl rounded-2xl p-8">
-            <h2 className="text-3xl font-semibold mb-6 text-gray-900 flex items-center">
-              <MessageSquare size={28} className="mr-3 text-yellow-600" />
-              Submit Your Enquiry
-            </h2>
-            {formError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
-                {formError}
-              </div>
-            )}
-            {formSuccess && (
-              <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-lg mb-6">
-                {formSuccess}
-              </div>
-            )}
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2 flex items-center">
-                    <UserIcon size={18} className="mr-2 text-yellow-600" />
-                    Your Name *
-                  </label>
-                  <input
-                    name="name"
-                    value={formData.name}
-                    placeholder="Enter your name"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    onChange={handleFormChange}
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2 flex items-center">
-                    <Mail size={18} className="mr-2 text-yellow-600" />
-                    Your Email *
-                  </label>
-                  <input
-                    name="email"
-                    value={formData.email}
-                    placeholder="Enter your email"
-                    type="email"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    onChange={handleFormChange}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2 flex items-center">
-                  <Phone size={18} className="mr-2 text-yellow-600" />
-                  Your Phone (optional)
-                </label>
-                <input
-                  name="phone"
-                  value={formData.phone}
-                  placeholder="Enter your phone number"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                  onChange={handleFormChange}
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2 flex items-center">
-                  <MessageSquare size={18} className="mr-2 text-yellow-600" />
-                  Your Message *
-                </label>
-                <textarea
-                  name="message"
-                  value={formData.message}
-                  placeholder="Describe your enquiry..."
-                  rows={4}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none"
-                  onChange={handleFormChange}
-                />
-              </div>
-              <button
-                onClick={handleFormSubmit}
-                disabled={formLoading}
-                className="w-full bg-yellow-600 text-white py-3 rounded-lg font-bold hover:bg-yellow-700 transition disabled:opacity-50 flex items-center justify-center shadow-lg"
-              >
-                {formLoading ? (
-                  <>
-                    <Loader size={20} className="mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send size={20} className="mr-2" />
-                    Submit Enquiry
-                  </>
+      <div className="max-w-6xl mx-auto px-6 -mt-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* --- ENQUIRY FORM --- */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="lg:col-span-7 bg-white shadow-2xl shadow-yellow-900/5 rounded-[2.5rem] overflow-hidden border border-slate-100"
+          >
+            <div className="p-8 md:p-10">
+              <h2 className="text-2xl font-bold mb-8 flex items-center gap-3 text-slate-800">
+                <Send className="text-amber-500" size={24} />
+                Send Enquiry
+              </h2>
+
+              <AnimatePresence mode="wait">
+                {formError && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium mb-6 border border-red-100">
+                    <ShieldAlert size={18} className="inline mr-2" /> {formError}
+                  </motion.div>
                 )}
-              </button>
-            </div>
-          </div>
+                {formSuccess && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-emerald-50 text-emerald-700 p-4 rounded-xl text-sm font-bold mb-6 border border-emerald-100">
+                    {formSuccess}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-          {/* Enquiries List */}
-          <div className="bg-white shadow-xl rounded-2xl p-8">
-            <h2 className="text-3xl font-semibold mb-6 text-gray-900 flex items-center">
-              <MessageSquare size={28} className="mr-3 text-yellow-600" />
-              Recent Enquiries
-            </h2>
-            {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader size={32} className="animate-spin text-yellow-600" />
-                <span className="ml-3 text-gray-600">Loading enquiries...</span>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormInput label="Name *" name="name" icon={<UserIcon size={18}/>} value={formData.name} onChange={handleFormChange} placeholder="John Doe" />
+                  <FormInput label="Email *" name="email" type="email" icon={<Mail size={18}/>} value={formData.email} onChange={handleFormChange} placeholder="john@example.com" />
+                </div>
+
+                <FormInput label="Phone" name="phone" icon={<Phone size={18}/>} value={formData.phone} onChange={handleFormChange} placeholder="+91 00000 00000" />
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 ml-1">
+                    <MessageSquare size={14}/> Message *
+                  </label>
+                  <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleFormChange}
+                    rows={5}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-amber-400 outline-none transition-all text-sm font-semibold placeholder:text-slate-300 resize-none"
+                    placeholder="Tell us what you need..."
+                  />
+                </div>
+
+                <button
+                  onClick={handleFormSubmit}
+                  disabled={formLoading}
+                  className="w-full bg-slate-900 hover:bg-black disabled:bg-slate-300 text-[#FFD700] py-5 rounded-2xl font-black transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 group active:scale-[0.98]"
+                >
+                  {formLoading ? (
+                    <Loader className="animate-spin" size={20} />
+                  ) : (
+                    <>
+                      <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"/> 
+                      Send Message
+                    </>
+                  )}
+                </button>
               </div>
-            ) : enquiries.length === 0 ? (
-              <p className="text-center text-gray-500 py-12">No enquiries yet.</p>
-            ) : (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {enquiries.map((enquiry) => (
-                  <div key={enquiry.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition">
-                    <p className="font-medium text-gray-900 mb-2">{enquiry.message}</p>
-                    <p className="text-sm text-gray-500 mb-3">
-                      Submitted on: {new Date(enquiry.created_at).toLocaleDateString()}
-                    </p>
-                    <div className="space-y-1 text-sm">
-                      <p className="flex items-center">
-                        <UserIcon size={16} className="mr-2 text-gray-600" />
-                        <strong>Name:</strong> {enquiry.name}
-                      </p>
-                      <p className="flex items-center">
-                        <Mail size={16} className="mr-2 text-gray-600" />
-                        <strong>Email:</strong> {enquiry.email}
-                      </p>
-                      {enquiry.phone && (
-                        <p className="flex items-center">
-                          <Phone size={16} className="mr-2 text-gray-600" />
-                          <strong>Phone:</strong> {enquiry.phone}
-                        </p>
-                      )}
+            </div>
+          </motion.div>
+
+          {/* --- SIDE FEED --- */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-5 space-y-6"
+          >
+            <div className="flex items-center justify-between mb-2 px-2">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                <History className="text-amber-500" size={20} />
+                Latest Inquiries
+              </h2>
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-sm">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Live</span>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+              {loading ? (
+                [1, 2, 3].map((n) => <div key={n} className="h-40 w-full bg-slate-100 animate-pulse rounded-[2rem]" />)
+              ) : enquiries.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400 font-bold">No data found</div>
+              ) : (
+                enquiries.map((enq, idx) => (
+                  <motion.div
+                    key={enq.id}
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:border-amber-200 transition-all border-l-4 border-l-[#FFD700]"
+                  >
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <Calendar size={12} className="text-amber-500" />
+                        {new Date(enq.created_at).toLocaleDateString("en-GB")}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-300">#ENQ-{enq.id}</span>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+
+                    <div className="mb-5">
+                      <p className="text-sm font-bold text-slate-800 line-clamp-2 mb-1">
+                        "{enq.message}"
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">Sent by {enq.name}</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl relative overflow-hidden group/lock border border-slate-100">
+                      <div className="flex flex-col gap-1 opacity-20 select-none">
+                        <div className="flex items-center gap-2"><Lock size={12} /><span className="text-[11px] font-black blur-[4px]">{enq.email}</span></div>
+                      </div>
+                      <button 
+                        onClick={() => window.location.href='/user/subscription-plans'}
+                        className="absolute inset-0 w-full h-full bg-slate-900/0 hover:bg-slate-900 transition-all flex items-center justify-center opacity-0 hover:opacity-100 text-[10px] font-black text-[#FFD700] uppercase tracking-widest gap-2"
+                      >
+                        <Lock size={12} /> Unlock Details
+                      </button>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </motion.div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function FormInput({ label, icon, value, onChange, placeholder, name, type = "text" }: any) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 ml-1">
+        {icon} {label}
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-amber-400 outline-none transition-all text-sm font-bold text-slate-700 placeholder:text-slate-300"
+      />
     </div>
   );
 }

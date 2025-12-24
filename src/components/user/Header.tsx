@@ -90,13 +90,13 @@ export default function UserFeed() {
     setUser(null);
   };
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target;
+    const { name, value } = e.target;
 
-  setLoginData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-};
+    setLoginData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
 
   // Login handler
@@ -260,96 +260,204 @@ export default function UserFeed() {
                   Login
                 </button>
                 {/* Register Button in Header */}
-{/* Register Dropdown in Header */}
-<div className="relative">
-  <button
-    onClick={() => setOpenMenu(openMenu === "register" ? null : "register")}
-    className="bg-yellow-600 px-4 py-2 rounded text-white"
-  >
-    Register
-  </button>
+                {/* Register Dropdown in Header */}
+                <div className="relative">
+                  {/* ---------------- REDESIGNED PREMIUM HEADER ---------------- */}
+                  <header className="fixed top-0 left-0 right-0 z-[100] transition-all duration-300">
+                    {/* Glassmorphism Background Container */}
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-[0_2px_20px_-5px_rgba(0,0,0,0.05)]" />
 
-  {openMenu === "register" && (
-    <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md z-50">
-      {/* User Registration */}
-      <button
-        onClick={() => {
-          setShowRegisterPopup(true);
-          setOpenMenu(null);
-        }}
-        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-      >
-        User Registration
-      </button>
+                    <div className="relative max-w-7xl mx-auto px-6 h-20 md:h-24 flex items-center justify-between gap-4">
 
-      {/* Vendor Registration */}
-      <Link
-        href="/vendorlogin"
-        className="block px-4 py-2 hover:bg-gray-100"
-        onClick={() => setOpenMenu(null)}
-      >
-        Vendor Registration
-      </Link>
-    </div>
-  )}
-</div>
+                      {/* Brand Logo */}
+                      <Link href="/user/feed" className="flex-shrink-0 hover:opacity-80 transition-opacity">
+                        <Image
+                          src="/logo.jpg"
+                          alt="QickTick"
+                          width={130}
+                          height={50}
+                          className="object-contain"
+                        />
+                      </Link>
+
+                      {/* Main Navigation Links */}
+                      <nav className="hidden xl:flex items-center bg-slate-100/50 rounded-2xl p-1.5 border border-slate-200/50">
+                        {[
+                          { name: "Home", href: "/user/feed" },
+                          { name: "Plans", href: "/user/subscription-plans" },
+                          { name: "Listing", href: "/user/listing" },
+                          { name: "Video", href: "/user/video" },
+                          { name: "Transport", href: "/user/transport" },
+                          { name: "Enquiry", href: "/user/enquiry" },
+                          { name: "Help & Earn", href: "/user/help" },
+                        ].map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${pathname === item.href
+                              ? "bg-[#FFD700] text-slate-900 shadow-sm"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-white"
+                              }`}
+                          >
+                            {item.name}
+                          </Link>
+                        ))}
+                      </nav>
+
+                      {/* Right Side Actions */}
+                      <div className="flex items-center space-x-4">
+                        <Link
+                          href="/user/add-business"
+                          className="hidden md:flex px-5 py-2.5 bg-slate-900 text-[#FFD700] rounded-xl text-[11px] font-black uppercase tracking-wider hover:bg-black transition-all shadow-lg shadow-slate-200"
+                        >
+                          Add Business
+                        </Link>
+
+                        {/* Auth Section */}
+                        {!user ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setShowLoginPopup(true)}
+                              className="px-4 py-2 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
+                            >
+                              Login
+                            </button>
+
+                            <div className="relative">
+                              <button
+                                onClick={() => setOpenMenu(openMenu === "register" ? null : "register")}
+                                className="bg-[#FFD700] px-5 py-2.5 rounded-xl text-sm font-black text-slate-900 shadow-md hover:bg-yellow-400 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                              >
+                                Register
+                              </button>
+
+                              {openMenu === "register" && (
+                                <div className="absolute right-0 mt-3 w-56 bg-white shadow-2xl rounded-2xl border border-slate-100 py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                  <button
+                                    onClick={() => { setShowRegisterPopup(true); setOpenMenu(null); }}
+                                    className="flex w-full text-left px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors"
+                                  >
+                                    User Registration
+                                  </button>
+                                  <div className="h-[1px] bg-slate-100 mx-3" />
+                                  <Link
+                                    href="/vendorlogin"
+                                    className="flex px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors"
+                                    onClick={() => setOpenMenu(null)}
+                                  >
+                                    Vendor Registration
+                                  </Link>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <button
+                              onClick={() => setOpenMenu(openMenu === "profile" ? null : "profile")}
+                              className="flex items-center gap-2 p-0.5 rounded-full border-2 border-[#FFD700] hover:bg-yellow-50 transition-all shadow-sm"
+                            >
+                              <UserCircle size={38} className="text-slate-900" />
+                            </button>
+
+                            {openMenu === "profile" && (
+                              <div className="absolute right-0 mt-3 bg-white shadow-2xl rounded-[2rem] border border-slate-100 py-4 w-64 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                <div className="px-6 py-3 mb-2 border-b border-slate-50">
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Signed in as</p>
+                                  <p className="text-sm font-black truncate text-slate-900">{user.email}</p>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <Link
+                                    href={userRole === "vendor" ? "/user/vendor-profile" : "/user/profile"}
+                                    className="flex px-6 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors"
+                                  >
+                                    My Profile
+                                  </Link>
+
+                                  {userRole === "vendor" && (
+                                    <>
+                                      <Link href="/vendor/products" className="flex px-6 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors">Manage Products</Link>
+                                      <Link href="/vendor/enquiry" className="flex px-6 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors">View Enquiries</Link>
+                                      <Link href="/vendor/subscription" className="flex px-6 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors text-yellow-600">Active Plans</Link>
+                                    </>
+                                  )}
+                                </div>
+
+                                <button
+                                  onClick={logout}
+                                  className="flex w-full px-6 py-4 hover:bg-red-50 text-red-600 font-black text-xs uppercase tracking-widest items-center gap-3 mt-2 border-t border-slate-50 transition-colors"
+                                >
+                                  <LogOut size={16} /> Logout Account
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </header>
+
+                  {/* IMPORTANT: Spacer so content doesn't hide under the fixed header */}
+                  <div className="h-20 md:h-24" />
+                </div>
 
 
               </div>
             )}
 
             {/* ▼ AFTER login - show PROFILE ICON */}
-          {user && (
-  <div className="relative">
-    <button onClick={() => setOpenMenu(openMenu ? null : "profile")}>
-      <UserCircle size={36} className="text-black" />
-    </button>
+            {user && (
+              <div className="relative">
+                <button onClick={() => setOpenMenu(openMenu ? null : "profile")}>
+                  <UserCircle size={36} className="text-black" />
+                </button>
 
-    {openMenu === "profile" && (
-      <div className="absolute right-0 bg-white shadow-xl rounded-md py-2 w-52 text-sm z-50">
-        {/* My Profile link */}
-        <Link
-          href={userRole === "vendor" ? "/user/vendor-profile" : "/user/profile"}
-          className="flex px-4 py-2 hover:bg-gray-100"
-        >
-          My Profile
-        </Link>
+                {openMenu === "profile" && (
+                  <div className="absolute right-0 bg-white shadow-xl rounded-md py-2 w-52 text-sm z-50">
+                    {/* My Profile link */}
+                    <Link
+                      href={userRole === "vendor" ? "/user/vendor-profile" : "/user/profile"}
+                      className="flex px-4 py-2 hover:bg-gray-100"
+                    >
+                      My Profile
+                    </Link>
 
-        {/* ▼ Vendor-specific links (only visible for vendors) */}
-        {userRole === "vendor" && (
-          <>
-            <Link
-              href="/vendor/products"
-              className="flex px-4 py-2 hover:bg-gray-100"
-            >
-              Products
-            </Link>
-            <Link
-              href="/vendor/enquiry"
-              className="flex px-4 py-2 hover:bg-gray-100"
-            >
-              Enquiries
-            </Link>
-            <Link
-              href="/vendor/subscription"
-              className="flex px-4 py-2 hover:bg-gray-100"
-            >
-              Subscription
-            </Link>
-          </>
-        )}
+                    {/* ▼ Vendor-specific links (only visible for vendors) */}
+                    {userRole === "vendor" && (
+                      <>
+                        <Link
+                          href="/vendor/products"
+                          className="flex px-4 py-2 hover:bg-gray-100"
+                        >
+                          Products
+                        </Link>
+                        <Link
+                          href="/vendor/enquiry"
+                          className="flex px-4 py-2 hover:bg-gray-100"
+                        >
+                          Enquiries
+                        </Link>
+                        <Link
+                          href="/vendor/subscription"
+                          className="flex px-4 py-2 hover:bg-gray-100"
+                        >
+                          Subscription
+                        </Link>
+                      </>
+                    )}
 
-        {/* Logout button */}
-        <button
-          onClick={logout}
-          className="flex w-full px-4 py-2 hover:bg-gray-100 text-left"
-        >
-          <LogOut size={16} className="mr-2" /> Logout
-        </button>
-      </div>
-    )}
-  </div>
-)}
+                    {/* Logout button */}
+                    <button
+                      onClick={logout}
+                      className="flex w-full px-4 py-2 hover:bg-gray-100 text-left"
+                    >
+                      <LogOut size={16} className="mr-2" /> Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
           </nav>
         </div>
@@ -357,161 +465,199 @@ export default function UserFeed() {
 
       {/* -------------------- LOGIN POPUP ------------------------ */}
       {showLoginPopup && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
-          <div className="bg-white p-8 rounded-2xl w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            {/* Close Button */}
-            <button
-              onClick={() => {
-                setShowLoginPopup(false);
-                setLoginData({ email: "", otp: "" });
-                setLoginError(null);
-                setLoginSuccess(null);
-              }}
-              className="absolute top-3 right-3 text-gray-600 hover:text-black text-lg font-bold"
-            >
-              ✕
-            </button>
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+          {/* Animated Backdrop */}
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300"
+            onClick={() => setShowLoginPopup(false)}
+          />
 
-            {/* Heading */}
-            <h2 className="text-3xl font-bold mb-6 text-center text-black">
-              Login
-            </h2>
+          <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Design Element: Top Glow */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-yellow-300 via-yellow-500 to-yellow-300" />
 
-            {/* Error/Success Messages */}
-            {loginError && <p className="text-red-600 mb-4 text-center">{loginError}</p>}
-            {loginSuccess && <p className="text-green-600 mb-4 text-center">{loginSuccess}</p>}
+            <div className="p-10">
+              <button
+                onClick={() => setShowLoginPopup(false)}
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-colors"
+              >
+                <span className="text-xl">✕</span>
+              </button>
 
-            {/* Form (Single-Step: Email + OTP Always Visible) */}
-            <div className="space-y-5">
-              <div className="flex flex-col">
-                <label className="font-semibold text-black mb-1">Email *</label>
-                <input
-                  name="email"
-                  value={loginData.email}
-                  placeholder="john@example.com"
-                  className="w-full p-3 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  onChange={handleLoginChange}
-                />
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-black text-slate-900 mb-2">Welcome Back</h2>
+                <p className="text-slate-500 font-medium">Enter your email to access your account</p>
               </div>
-              <div className="flex flex-col">
-                {otpTimer && (
-                  <p className="text-gray-600 text-sm text-center">
-                    OTP expires in: <span className="font-bold">{otpTimer}</span>
-                  </p>
-                )}
 
-                <label className="font-semibold text-black mb-1">OTP *</label>
-                <input
-                  name="otp"
-                  value={loginData.otp}
-                  placeholder="Enter 8-digit OTP"
-                  className="w-full p-3 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  onChange={handleLoginChange}
-                />
-              </div>
-              <div className="flex space-x-3">
-                <button
-                  onClick={sendLoginOtp}
-                  disabled={loginLoading}
-                  className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-bold hover:bg-gray-700 transition disabled:opacity-50"
-                >
-                  {loginLoading ? "Sending..." : "Send OTP"}
-                </button>
-                <button
-                  onClick={verifyLoginOtp}
-                  disabled={loginLoading}
-                  className="flex-1 bg-yellow-600 text-white py-3 rounded-lg font-bold hover:bg-yellow-700 transition disabled:opacity-50"
-                >
-                  {loginLoading ? "Verifying..." : "Verify OTP"}
-                </button>
+              {loginError && (
+                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm font-bold rounded-r-xl">
+                  {loginError}
+                </div>
+              )}
+              {loginSuccess && (
+                <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 text-sm font-bold rounded-r-xl">
+                  {loginSuccess}
+                </div>
+              )}
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
+                  <input
+                    name="email"
+                    type="email"
+                    value={loginData.email}
+                    onChange={handleLoginChange}
+                    placeholder="name@company.com"
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 outline-none transition-all font-bold text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">One-Time Password</label>
+                    {otpTimer && <span className="text-xs font-bold text-yellow-600 mb-1">{otpTimer} remaining</span>}
+                  </div>
+                  <input
+                    name="otp"
+                    value={loginData.otp}
+                    onChange={handleLoginChange}
+                    placeholder="8-digit code"
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 outline-none transition-all font-bold tracking-[0.2em] text-center text-lg"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <button
+                    onClick={sendLoginOtp}
+                    disabled={loginLoading}
+                    className="py-4 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider transition-all disabled:opacity-50"
+                  >
+                    {loginLoading ? "Sending..." : "Send OTP"}
+                  </button>
+                  <button
+                    onClick={verifyLoginOtp}
+                    disabled={loginLoading}
+                    className="py-4 bg-[#FFD700] hover:bg-yellow-400 text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-yellow-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {loginLoading ? "Verifying..." : "Login"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
+
       {/* -------------------- REGISTER POPUP ------------------------ */}
       {showRegisterPopup && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
-          <div className="bg-white p-8 rounded-2xl w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            {/* Close Button */}
-            <button
-              onClick={() => {
-                setShowRegisterPopup(false);
-                setRegisterStep('form');
-                setRegisterData({ name: "", email: "", otp: "" });
-                setRegisterError(null);
-                setRegisterSuccess(null);
-              }}
-              className="absolute top-3 right-3 text-gray-600 hover:text-black text-lg font-bold"
-            >
-              ✕
-            </button>
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300"
+            onClick={() => setShowRegisterPopup(false)}
+          />
 
-            {/* Heading */}
-            <h2 className="text-3xl font-bold mb-6 text-center text-black">
-              Register
-            </h2>
+          <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Design Element: Top Glow */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-400 via-[#FFD700] to-yellow-300" />
 
-            {/* Error/Success Messages */}
-            {registerError && <p className="text-red-600 mb-4 text-center">{registerError}</p>}
-            {registerSuccess && <p className="text-green-600 mb-4 text-center">{registerSuccess}</p>}
+            <div className="p-10">
+              <button
+                onClick={() => setShowRegisterPopup(false)}
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-colors"
+              >
+                <span className="text-xl">✕</span>
+              </button>
 
-            {/* Form */}
-            <div className="space-y-5">
-              {registerStep === 'form' && (
-                <>
-                  <div className="flex flex-col">
-                    <label className="font-semibold text-black mb-1">Name *</label>
-                    <input
-                      name="name"
-                      value={registerData.name}
-                      placeholder="John Doe"
-                      className="w-full p-3 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                      onChange={handleRegisterChange}
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <label className="font-semibold text-black mb-1">Email *</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={registerData.email}
-                      placeholder="john@example.com"
-                      className="w-full p-3 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                      onChange={handleRegisterChange}
-                    />
-                  </div>
-                  <button
-                    onClick={sendRegisterOtp}
-                    disabled={registerLoading}
-                    className="w-full bg-yellow-600 text-white py-3 rounded-lg font-bold hover:bg-yellow-700 transition disabled:opacity-50"
-                  >
-                    {registerLoading ? "Sending OTP..." : "Send OTP"}
-                  </button>
-                </>
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-black text-slate-900 mb-2">Create Account</h2>
+                <p className="text-slate-500 font-medium">Join QickTick today and get started</p>
+              </div>
+
+              {registerError && (
+                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm font-bold rounded-r-xl">
+                  {registerError}
+                </div>
               )}
-              {registerStep === 'otp' && (
-                <>
-                  <div className="flex flex-col">
-                    <label className="font-semibold text-black mb-1">Enter OTP *</label>
-                    <input
-                      name="otp"
-                      value={registerData.otp}
-                      placeholder="Enter 8-digit OTP"
-                      className="w-full p-3 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                      onChange={handleRegisterChange}
-                    />
-                  </div>
-                  <button
-                    onClick={verifyRegisterOtp}
-                    disabled={registerLoading}
-                    className="w-full bg-yellow-600 text-white py-3 rounded-lg font-bold hover:bg-yellow-700 transition disabled:opacity-50"
-                  >
-                    {registerLoading ? "Verifying..." : "Verify OTP"}
-                  </button>
-                </>
+              {registerSuccess && (
+                <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 text-sm font-bold rounded-r-xl">
+                  {registerSuccess}
+                </div>
               )}
+
+              <div className="space-y-5">
+                {registerStep === 'form' ? (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
+                      <input
+                        name="name"
+                        value={registerData.name}
+                        onChange={handleRegisterChange}
+                        placeholder="John Doe"
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 outline-none transition-all font-bold text-slate-900"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
+                      <input
+                        name="email"
+                        type="email"
+                        value={registerData.email}
+                        onChange={handleRegisterChange}
+                        placeholder="john@example.com"
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 outline-none transition-all font-bold text-slate-900"
+                      />
+                    </div>
+
+                    <button
+                      onClick={sendRegisterOtp}
+                      disabled={registerLoading}
+                      className="w-full py-4 bg-slate-900 text-[#FFD700] rounded-2xl font-black text-sm uppercase tracking-wider shadow-xl shadow-slate-200 transition-all hover:bg-black hover:scale-[1.02] active:scale-[0.98] mt-4 disabled:opacity-50"
+                    >
+                      {registerLoading ? "Sending OTP..." : "Get Verification Code"}
+                    </button>
+                  </>
+                ) : (
+                  <div className="animate-in slide-in-from-right-4 duration-300">
+                    <div className="space-y-4">
+                      <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100 mb-6">
+                        <p className="text-xs text-yellow-800 font-bold text-center">
+                          We've sent a code to <span className="underline">{registerData.email}</span>
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1 text-center block">Verification Code</label>
+                        <input
+                          name="otp"
+                          value={registerData.otp}
+                          onChange={handleRegisterChange}
+                          placeholder="Enter Code"
+                          className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 outline-none transition-all font-bold text-center text-2xl tracking-[0.5em]"
+                        />
+                      </div>
+
+                      <button
+                        onClick={verifyRegisterOtp}
+                        disabled={registerLoading}
+                        className="w-full py-4 bg-[#FFD700] text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-yellow-500/20 transition-all hover:bg-yellow-400 hover:scale-[1.02] active:scale-[0.98] mt-4 disabled:opacity-50"
+                      >
+                        {registerLoading ? "Verifying..." : "Complete Registration"}
+                      </button>
+
+                      <button
+                        onClick={() => setRegisterStep('form')}
+                        className="w-full text-center text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-tighter"
+                      >
+                        ← Back to details
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

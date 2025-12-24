@@ -11,11 +11,7 @@ import {
   X,
   Save,
   Image as ImageIcon,
-  Tag,
-  IndianRupee,
-  FileText,
-  AlertCircle,
-  Youtube
+  Youtube,
 } from "lucide-react";
 
 type MediaItem = {
@@ -88,6 +84,7 @@ export default function VendorProductsPage() {
     if (!youtubeUrl.trim()) return;
 
     setMediaList([{ url: youtubeUrl.trim(), type: "youtube" }]);
+    setYoutubeUrl("");
   };
 
   const getYoutubeEmbed = (url: string) => {
@@ -163,7 +160,6 @@ export default function VendorProductsPage() {
 
   return (
     <div className="min-h-screen bg-yellow-50 px-6 xl:px-20 py-12 space-y-12">
-
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <div>
@@ -177,7 +173,12 @@ export default function VendorProductsPage() {
 
         {!editingProduct && (
           <button
-            onClick={() => setEditingProduct({ id: "new" })}
+            onClick={() => {
+              setEditingProduct({ id: "new" });
+              setProductForm({ product_name: "", price: "", description: "" });
+              setMediaList([]);
+              setYoutubeUrl("");
+            }}
             className="flex items-center gap-2 bg-red-600 hover:bg-yellow-400
                        text-white hover:text-red-800 px-8 py-4 rounded-2xl
                        font-black text-xs uppercase tracking-widest transition"
@@ -191,7 +192,6 @@ export default function VendorProductsPage() {
       {editingProduct && (
         <div className="bg-white border-4 border-red-600 rounded-[2.5rem]
                         shadow-[20px_20px_0px_rgba(234,179,8,0.3)]">
-
           <div className="bg-red-600 p-6 flex justify-between text-white">
             <span className="font-black uppercase tracking-widest text-xs">
               {editingProduct.id === "new" ? "New Product" : "Edit Product"}
@@ -200,7 +200,6 @@ export default function VendorProductsPage() {
           </div>
 
           <div className="p-10 grid lg:grid-cols-3 gap-10">
-
             {/* MEDIA */}
             <div className="space-y-6">
               <label className="text-xs font-black text-red-600 uppercase">
@@ -208,7 +207,7 @@ export default function VendorProductsPage() {
               </label>
 
               <div className="aspect-square bg-yellow-50 border-2 border-dashed
-                              border-yellow-300 rounded-3xl flex items-center justify-center overflow-hidden">
+                              border-yellow-300 rounded-3xl flex items-center justify-center overflow-hidden relative">
                 {mediaList[0]?.type === "image" && (
                   <img src={mediaList[0].url} className="w-full h-full object-cover" />
                 )}
@@ -281,7 +280,7 @@ export default function VendorProductsPage() {
                 onClick={handleSave}
                 className="px-10 py-5 bg-red-600 hover:bg-yellow-400
                            text-white hover:text-red-800 rounded-2xl
-                           font-black uppercase tracking-widest"
+                           font-black uppercase tracking-widest flex items-center gap-2"
               >
                 <Save size={16} /> Save Product
               </button>

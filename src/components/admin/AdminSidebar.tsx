@@ -28,8 +28,8 @@ export default function AdminSidebar() {
     <Link
       href={href}
       className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive(href)
-          ? "bg-red-600 text-white shadow-lg shadow-red-600/20"
-          : "text-slate-400 hover:bg-slate-800 hover:text-white"
+        ? "bg-red-600 text-white shadow-lg shadow-red-600/20"
+        : "text-slate-400 hover:bg-slate-800 hover:text-white"
         }`}
     >
       <Icon size={22} className={isActive(href) ? "text-white" : "group-hover:text-red-500"} />
@@ -70,7 +70,12 @@ export default function AdminSidebar() {
 
         {role === "admin" && <NavLink href="/admin/dashboard" icon={HiOutlineHome}>Dashboard</NavLink>}
         <NavLink href="/admin/category" icon={HiOutlineOfficeBuilding}>Categories</NavLink>
-
+        {/* Plan Management - Restricted to Admin */}
+        {role === "admin" && (
+          <NavLink href="/admin/plans" icon={HiOutlineClipboardList}>
+            Subscription Plans
+          </NavLink>
+        )}
         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] px-4 mt-8 mb-2">Content Manager</p>
         <div className="space-y-1 bg-slate-900/50 p-2 rounded-2xl border border-slate-800/50">
           <NavLink href="/admin/site-home/digital-branding" icon={HiOutlineTemplate}>Branding Reels</NavLink>
